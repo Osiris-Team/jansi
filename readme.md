@@ -2,7 +2,7 @@
 
 Fork of Jansi which allows Ansi to Html conversion. Quick example:
 ```java
-new UtilsAnsiHtml().convertAnsiToHtml(ansi);
+String ansiAsHtml = new UtilsAnsiHtml().convertAnsiToHtml(ansi);
 ```
 
 ## Installation
