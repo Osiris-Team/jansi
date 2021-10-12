@@ -1,4 +1,4 @@
-![](http://fusesource.github.io/jansi/images/project-logo.png)
+# ![](http://fusesource.github.io/jansi/images/project-logo.png)
 
 Fork of Jansi which allows Ansi to Html conversion. Quick example:
 ```java
