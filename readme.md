@@ -1,6 +1,9 @@
 # [![Jansi][logo]][Jansi]
 [logo]: http://fusesource.github.io/jansi/images/project-logo.png "Jansi"
-Fork of Jansi which allows Ansi to Html conversion.
+Fork of Jansi which allows Ansi to Html conversion. Quick example:
+```java
+new UtilsAnsiHtml().convertAnsiToHtml(ansi);
+```
 
 ## Description
 
