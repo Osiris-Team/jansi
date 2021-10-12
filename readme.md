@@ -9,3 +9,5 @@ new UtilsAnsiHtml().convertAnsiToHtml(ansi);
 - Java 8 or higher required.
 - [Click here for maven/gradle/sbt/leinigen instructions.](https://jitpack.io/#Osiris-Team/jansi)
 - Make sure to watch this repository to get notified of future updates.
+
+Give this repo a star if you want it implemented in the original Jansi repo.
