@@ -25,18 +25,18 @@
 
     <groupId>org.fusesource.jansi</groupId>
     <artifactId>jansi</artifactId>
-    <version>2.3.5-SNAPSHOT</version>
+    <version>2.4.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>${project.artifactId}</name>
     <description>Jansi is a java library for generating and interpreting ANSI escape sequences.</description>
 
     <properties>
-        <javadocSource>6</javadocSource>
+        <javadocSource>7</javadocSource>
         <jdkTarget>1.7</jdkTarget>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <slf4j-version>1.6.1</slf4j-version>
-        <project.build.outputTimestamp>2021-07-23T13:13:53Z</project.build.outputTimestamp>
+        <project.build.outputTimestamp>2021-10-14T05:42:06Z</project.build.outputTimestamp>
     </properties>
 
     <url>http://fusesource.github.io/jansi</url>
