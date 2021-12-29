@@ -14,6 +14,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 public class HtmlAnsiOutputStreamTest {
 
+    String htmlRed = HtmlAnsiOutputStream.ANSI_COLOR_MAP[1];
+    String htmlGreen = HtmlAnsiOutputStream.ANSI_COLOR_MAP[2];
+
     @Test
     public void testNoMarkup() throws IOException {
         assertEquals("line", colorize("line"));
@@ -32,13 +35,13 @@ public class HtmlAnsiOutputStreamTest {
 
     @Test
     public void testGreen() throws IOException {
-        assertEquals("<span style=\"color: green;\">hello world</span>",
+        assertEquals("<span style=\"color: "+htmlGreen+";\">hello world</span>",
                 colorize("[32mhello world"));
     }
 
     @Test
     public void testGreenOnWhite() throws IOException {
-        assertEquals("<span style=\"background-color: white;\"><span style=\"color: green;\">hello world</span></span>",
+        assertEquals("<span style=\"background-color: white;\"><span style=\"color: "+htmlGreen+";\">hello world</span></span>",
                 colorize("[47;32mhello world"));
     }
 
@@ -53,7 +56,7 @@ public class HtmlAnsiOutputStreamTest {
 
     @Test
     public void testResetOnOpen() throws IOException {
-        assertEquals("<span style=\"color: red;\">red</span>",
+        assertEquals("<span style=\"color: "+htmlRed+";\">red</span>",
                 colorize("[0;31;49mred[0m"));
     }
 

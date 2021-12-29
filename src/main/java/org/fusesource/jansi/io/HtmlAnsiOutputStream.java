@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * A optimized/edited {@link HtmlAnsiOutputStream} for ansi 2.x and above. <br>
+ * A optimized/edited {@link HtmlAnsiOutputStream} for Jansi 2.x and above. <br>
  * @author <a href="https://github.com/Osiris-Team">Osiris Team</a>
  * @author <a href="http://code.dblock.org">Daniel Doubrovkine</a>
  */
@@ -55,8 +55,16 @@ public class HtmlAnsiOutputStream extends AnsiOutputStream {
         super.close();
     }
 
-    public static final String[] ANSI_COLOR_MAP = {"black", "red",
-            "green", "yellow", "blue", "magenta", "cyan", "white",};
+    public static final String[] ANSI_COLOR_MAP = {
+            "black",
+            // Made the colors below less bright, to fit better in pages with a white background.
+            "#781914", // red
+            "#147823", // green
+            "#787814", // yellow
+            "#142078", // blue
+            "#431478", // magenta
+            "#146b78", // cyan
+            "white",};
 
     private static final byte[] BYTES_QUOT = "&quot;".getBytes();
     private static final byte[] BYTES_AMP = "&amp;".getBytes();
@@ -74,7 +82,7 @@ public class HtmlAnsiOutputStream extends AnsiOutputStream {
                 AnsiMode.Default,
                 createAnsiToHtmlProcessorForOutput(os),
                 AnsiType.Native,
-                AnsiColors.Colors16,
+                AnsiColors.TrueColor,
                 Charset.defaultCharset(),
                 null,
                 null,
