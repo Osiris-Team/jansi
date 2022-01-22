@@ -75,7 +75,7 @@ public class AnsiOutputStream extends FilterOutputStream {
     private static final int SECOND_CHARSET0_CHAR = '(';
     private static final int SECOND_CHARSET1_CHAR = ')';
 
-    private AnsiProcessor ap;
+    public AnsiProcessor ap;
     private final static int MAX_ESCAPE_SEQUENCE_LENGTH = 100;
     private final byte[] buffer = new byte[MAX_ESCAPE_SEQUENCE_LENGTH];
     private int pos = 0;
@@ -85,7 +85,7 @@ public class AnsiOutputStream extends FilterOutputStream {
     private final Charset cs;
 
     private final WidthSupplier width;
-    private final AnsiProcessor processor;
+    public AnsiProcessor processor;
     private final AnsiType type;
     private final AnsiColors colors;
     private final IoRunnable installer;

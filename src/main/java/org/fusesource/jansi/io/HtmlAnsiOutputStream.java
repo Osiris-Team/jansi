@@ -34,20 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author <a href="http://code.dblock.org">Daniel Doubrovkine</a>
  */
 public class HtmlAnsiOutputStream extends AnsiOutputStream {
-
-    private static final Map<OutputStream, AnsiToHtmlProcessor> streamsAndProcessors = new ConcurrentHashMap<>();
-
-    /**
-     * Creates a new {@link AnsiToHtmlProcessor} for the provided {@link OutputStream}, <br>
-     * and adds both to the {@link #streamsAndProcessors} map. <br>
-     * This is done to have working multithreading and diminish the need of a getProcessor() method <br>
-     * in the {@link AnsiOutputStream}.
-     */
-    private static synchronized AnsiToHtmlProcessor createAnsiToHtmlProcessorForOutput(OutputStream out){
-        AnsiToHtmlProcessor processor = new AnsiToHtmlProcessor(out);
-        streamsAndProcessors.put(out, processor);
-        return processor;
-    }
+    public AnsiToHtmlProcessor processor;
 
     @Override
     public void close() throws IOException {
@@ -72,7 +59,8 @@ public class HtmlAnsiOutputStream extends AnsiOutputStream {
     private static final byte[] BYTES_GT = "&gt;".getBytes();
 
     public HtmlAnsiOutputStream(OutputStream os) {
-        super(os,
+        super(
+                os,
                 new WidthSupplier() {
                     @Override
                     public int getTerminalWidth() {
@@ -80,14 +68,19 @@ public class HtmlAnsiOutputStream extends AnsiOutputStream {
                     }
                 },
                 AnsiMode.Default,
-                createAnsiToHtmlProcessorForOutput(os),
+                null,
                 AnsiType.Native,
                 AnsiColors.TrueColor,
                 Charset.defaultCharset(),
                 null,
                 null,
                 true);
-        streamsAndProcessors.get(os).setHtmlAnsiOutputStream(this);
+
+        this.processor = new AnsiToHtmlProcessor(os, this);
+        this.processor.haos = this;
+
+        super.processor = this.processor;
+        super.ap = this.processor;
     }
 
     private final List<String> closingAttributes = new ArrayList<>();

@@ -4,18 +4,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 public class AnsiToHtmlProcessor extends AnsiProcessor {
-    private boolean concealOn = false;
-    private HtmlAnsiOutputStream haos;
+    public boolean concealOn = false;
+    public HtmlAnsiOutputStream haos;
 
-    AnsiToHtmlProcessor(OutputStream os) {
+    AnsiToHtmlProcessor(OutputStream os, HtmlAnsiOutputStream haos) {
         super(os);
-    }
-
-    public HtmlAnsiOutputStream getHtmlAnsiOutputStream() {
-        return haos;
-    }
-
-    public void setHtmlAnsiOutputStream(HtmlAnsiOutputStream haos) {
         this.haos = haos;
     }
 
