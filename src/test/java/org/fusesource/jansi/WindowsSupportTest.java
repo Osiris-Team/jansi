@@ -26,6 +26,7 @@ public class WindowsSupportTest {
     public void testErrorMessage() {
         assumeTrue(AnsiConsole.IS_WINDOWS);
         String msg = WindowsSupport.getErrorMessage(500);
-        assertEquals(msg, "User profile cannot be loaded.");
+        //assertEquals(msg, "User profile cannot be loaded.");
+        // Fails because the text may be in another language instead of english.
     }
 }
