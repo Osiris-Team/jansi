@@ -28,7 +28,7 @@
     <version>2.4.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>${project.artifactId}</name>
+    <name>Jansi</name>
     <description>Jansi is a java library for generating and interpreting ANSI escape sequences.</description>
 
     <properties>
@@ -66,7 +66,7 @@
 
     <licenses>
         <license>
-            <name>The Apache Software License, Version 2.0</name>
+            <name>Apache License, Version 2.0</name>
             <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
             <distribution>repo</distribution>
         </license>
