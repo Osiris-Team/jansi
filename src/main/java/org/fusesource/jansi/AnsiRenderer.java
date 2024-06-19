@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2021 the original author(s).
+ * Copyright (C) 2009-2023 the original author(s).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -99,6 +99,11 @@ public class AnsiRenderer {
                 return target;
             }
             j += BEGIN_TOKEN_LEN;
+
+            // Check for invalid string with END_TOKEN before BEGIN_TOKEN
+            if (k < j) {
+                throw new IllegalArgumentException("Invalid input string found.");
+            }
             String spec = input.substring(j, k);
 
             String[] items = spec.split(CODE_TEXT_SEPARATOR, 2);
@@ -115,8 +120,7 @@ public class AnsiRenderer {
     }
 
     public static String render(final String text, final String... codes) {
-        return render(Ansi.ansi(), codes)
-                .a(text).reset().toString();
+        return render(Ansi.ansi(), codes).a(text).reset().toString();
     }
 
     /**
@@ -214,7 +218,7 @@ public class AnsiRenderer {
 
         // Aliases
         BOLD(Attribute.INTENSITY_BOLD),
-        FAINT(Attribute.INTENSITY_FAINT),;
+        FAINT(Attribute.INTENSITY_FAINT);
 
         private final Enum<?> n;
 
@@ -250,7 +254,5 @@ public class AnsiRenderer {
         }
     }
 
-    private AnsiRenderer() {
-    }
-
+    private AnsiRenderer() {}
 }

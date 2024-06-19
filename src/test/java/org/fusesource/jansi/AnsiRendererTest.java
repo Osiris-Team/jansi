@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2021 the original author(s).
+ * Copyright (C) 2009-2023 the original author(s).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,15 +24,14 @@ import static org.fusesource.jansi.Ansi.Color.*;
 import static org.fusesource.jansi.AnsiRenderer.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for the {@link AnsiRenderer} class.
  *
- * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  */
 public class AnsiRendererTest {
-
     @BeforeAll
     static void setUp() {
         Ansi.setEnabled(true);
@@ -80,11 +79,18 @@ public class AnsiRendererTest {
     public void testRender4() {
         String str = render("@|bold,red foo bar baz|@ ick @|bold,red foo bar baz|@");
         System.out.println(str);
-        assertEquals(ansi()
-                .a(INTENSITY_BOLD).fg(RED).a("foo bar baz").reset()
-                .a(" ick ")
-                .a(INTENSITY_BOLD).fg(RED).a("foo bar baz").reset()
-                .toString(), str);
+        assertEquals(
+                ansi().a(INTENSITY_BOLD)
+                        .fg(RED)
+                        .a("foo bar baz")
+                        .reset()
+                        .a(" ick ")
+                        .a(INTENSITY_BOLD)
+                        .fg(RED)
+                        .a("foo bar baz")
+                        .reset()
+                        .toString(),
+                str);
     }
 
     @Test
@@ -95,7 +101,6 @@ public class AnsiRendererTest {
         assertEquals(ansi().a(INTENSITY_BOLD).a("Hello").reset().toString(), str);
     }
 
-
     @Test
     public void testRenderNothing() {
         assertEquals("foo", render("foo"));
@@ -105,6 +110,11 @@ public class AnsiRendererTest {
     public void testRenderInvalidMissingEnd() {
         String str = render("@|bold foo");
         assertEquals("@|bold foo", str);
+    }
+
+    @Test
+    public void testRenderInvalidEndBeforeStart() {
+        assertThrows(IllegalArgumentException.class, () -> render("@|@"));
     }
 
     @Test

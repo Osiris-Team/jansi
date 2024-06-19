@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2020 the original author(s).
+ * Copyright (C) 2009-2023 the original author(s).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,26 +25,29 @@ import org.fusesource.jansi.AnsiColors;
 import org.fusesource.jansi.AnsiMode;
 import org.fusesource.jansi.AnsiType;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
+
 /**
- * A ANSI print stream extracts ANSI escape codes written to 
+ * A ANSI print stream extracts ANSI escape codes written to
  * an output stream and calls corresponding <code>AnsiProcessor.process*</code> methods.
  * This particular class is not synchronized for improved performances.
  *
  * <p>For more information about ANSI escape codes, see
  * <a href="http://en.wikipedia.org/wiki/ANSI_escape_code">Wikipedia article</a>
  *
- * @author Guillaume Nodet
  * @since 1.0
  * @see AnsiProcessor
  */
 public class AnsiOutputStream extends FilterOutputStream {
 
-    public static final byte[] RESET_CODE = "\033[0m".getBytes();
+    public static final byte[] RESET_CODE = "\033[0m".getBytes(US_ASCII);
 
+    @FunctionalInterface
     public interface IoRunnable {
         void run() throws IOException;
     }
 
+    @FunctionalInterface
     public interface WidthSupplier {
         int getTerminalWidth();
     }
@@ -76,11 +79,11 @@ public class AnsiOutputStream extends FilterOutputStream {
     private static final int SECOND_CHARSET1_CHAR = ')';
 
     public AnsiProcessor ap;
-    private final static int MAX_ESCAPE_SEQUENCE_LENGTH = 100;
+    private static final int MAX_ESCAPE_SEQUENCE_LENGTH = 100;
     private final byte[] buffer = new byte[MAX_ESCAPE_SEQUENCE_LENGTH];
     private int pos = 0;
     private int startOfValue;
-    private final ArrayList<Object> options = new ArrayList<Object>();
+    private final ArrayList<Object> options = new ArrayList<>();
     private int state = LOOKING_FOR_FIRST_ESC_CHAR;
     private final Charset cs;
 
@@ -93,9 +96,17 @@ public class AnsiOutputStream extends FilterOutputStream {
     private AnsiMode mode;
     private boolean resetAtUninstall;
 
-    public AnsiOutputStream(OutputStream os, WidthSupplier width, AnsiMode mode,
-                            AnsiProcessor processor, AnsiType type, AnsiColors colors,
-                            Charset cs, IoRunnable installer, IoRunnable uninstaller, boolean resetAtUninstall) {
+    public AnsiOutputStream(
+            OutputStream os,
+            WidthSupplier width,
+            AnsiMode mode,
+            AnsiProcessor processor,
+            AnsiType type,
+            AnsiColors colors,
+            Charset cs,
+            IoRunnable installer,
+            IoRunnable uninstaller,
+            boolean resetAtUninstall) {
         super(os);
         this.width = width;
         this.processor = processor;
@@ -330,9 +341,7 @@ public class AnsiOutputStream extends FilterOutputStream {
     }
 
     public void uninstall() throws IOException {
-        if (resetAtUninstall
-                && type != AnsiType.Redirected
-                && type != AnsiType.Unsupported) {
+        if (resetAtUninstall && type != AnsiType.Redirected && type != AnsiType.Unsupported) {
             setMode(AnsiMode.Default);
             write(RESET_CODE);
             flush();

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2017 the original author(s).
+ * Copyright (C) 2009-2023 the original author(s).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import java.util.concurrent.Callable;
  * Provides a fluent API for generating
  * <a href="https://en.wikipedia.org/wiki/ANSI_escape_code#CSI_sequences">ANSI escape sequences</a>.
  *
- * @author <a href="http://hiramchirino.com">Hiram Chirino</a>
  * @since 1.0
  */
 public class Ansi implements Appendable {
@@ -119,7 +118,6 @@ public class Ansi implements Appendable {
         public int value() {
             return value;
         }
-
     }
 
     /**
@@ -151,17 +149,14 @@ public class Ansi implements Appendable {
         }
     }
 
+    @FunctionalInterface
     public interface Consumer {
         void apply(Ansi ansi);
     }
 
     public static final String DISABLE = Ansi.class.getName() + ".disable";
 
-    private static Callable<Boolean> detector = new Callable<Boolean>() {
-        public Boolean call() throws Exception {
-            return !Boolean.getBoolean(DISABLE);
-        }
-    };
+    private static Callable<Boolean> detector = () -> !Boolean.getBoolean(DISABLE);
 
     public static void setDetector(final Callable<Boolean> detector) {
         if (detector == null) throw new IllegalArgumentException();
@@ -215,8 +210,7 @@ public class Ansi implements Appendable {
         }
     }
 
-    private static class NoAnsi
-            extends Ansi {
+    private static class NoAnsi extends Ansi {
         public NoAnsi() {
             super();
         }
@@ -377,7 +371,7 @@ public class Ansi implements Appendable {
     }
 
     private final StringBuilder builder;
-    private final ArrayList<Integer> attributeOptions = new ArrayList<Integer>(5);
+    private final ArrayList<Integer> attributeOptions = new ArrayList<>(5);
 
     public Ansi() {
         this(new StringBuilder(80));
@@ -706,24 +700,56 @@ public class Ansi implements Appendable {
     }
 
     public Ansi scrollUp(final int rows) {
+        if (rows == Integer.MIN_VALUE) {
+            return scrollDown(Integer.MAX_VALUE);
+        }
         return rows > 0 ? appendEscapeSequence('S', rows) : rows < 0 ? scrollDown(-rows) : this;
     }
 
     public Ansi scrollDown(final int rows) {
+        if (rows == Integer.MIN_VALUE) {
+            return scrollUp(Integer.MAX_VALUE);
+        }
         return rows > 0 ? appendEscapeSequence('T', rows) : rows < 0 ? scrollUp(-rows) : this;
-    }
-
-    public Ansi saveCursorPosition() {
-        return appendEscapeSequence('s');
     }
 
     @Deprecated
     public Ansi restorCursorPosition() {
-        return appendEscapeSequence('u');
+        return restoreCursorPosition();
+    }
+
+    public Ansi saveCursorPosition() {
+        saveCursorPositionSCO();
+        return saveCursorPositionDEC();
+    }
+
+    // SCO command
+    public Ansi saveCursorPositionSCO() {
+        return appendEscapeSequence('s');
+    }
+
+    // DEC command
+    public Ansi saveCursorPositionDEC() {
+        builder.append(FIRST_ESC_CHAR);
+        builder.append('7');
+        return this;
     }
 
     public Ansi restoreCursorPosition() {
+        restoreCursorPositionSCO();
+        return restoreCursorPositionDEC();
+    }
+
+    // SCO command
+    public Ansi restoreCursorPositionSCO() {
         return appendEscapeSequence('u');
+    }
+
+    // DEC command
+    public Ansi restoreCursorPositionDEC() {
+        builder.append(FIRST_ESC_CHAR);
+        builder.append('8');
+        return this;
     }
 
     public Ansi reset() {
@@ -900,8 +926,7 @@ public class Ansi implements Appendable {
     }
 
     private void flushAttributes() {
-        if (attributeOptions.isEmpty())
-            return;
+        if (attributeOptions.isEmpty()) return;
         if (attributeOptions.size() == 1 && attributeOptions.get(0) == 0) {
             builder.append(FIRST_ESC_CHAR);
             builder.append(SECOND_ESC_CHAR);

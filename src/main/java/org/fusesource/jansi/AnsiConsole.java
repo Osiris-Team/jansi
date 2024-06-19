@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2017 the original author(s).
+ * Copyright (C) 2009-2023 the original author(s).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,30 +28,30 @@ import java.util.Locale;
 
 import org.fusesource.jansi.internal.CLibrary;
 import org.fusesource.jansi.internal.CLibrary.WinSize;
+import org.fusesource.jansi.internal.Kernel32.CONSOLE_SCREEN_BUFFER_INFO;
+import org.fusesource.jansi.internal.MingwSupport;
 import org.fusesource.jansi.io.AnsiOutputStream;
 import org.fusesource.jansi.io.AnsiProcessor;
 import org.fusesource.jansi.io.FastBufferedOutputStream;
 import org.fusesource.jansi.io.WindowsAnsiProcessor;
-import org.fusesource.jansi.internal.Kernel32.CONSOLE_SCREEN_BUFFER_INFO;
 
 import static org.fusesource.jansi.internal.CLibrary.ioctl;
 import static org.fusesource.jansi.internal.CLibrary.isatty;
 import static org.fusesource.jansi.internal.Kernel32.GetConsoleMode;
+import static org.fusesource.jansi.internal.Kernel32.GetConsoleScreenBufferInfo;
 import static org.fusesource.jansi.internal.Kernel32.GetStdHandle;
 import static org.fusesource.jansi.internal.Kernel32.STD_ERROR_HANDLE;
 import static org.fusesource.jansi.internal.Kernel32.STD_OUTPUT_HANDLE;
 import static org.fusesource.jansi.internal.Kernel32.SetConsoleMode;
-import static org.fusesource.jansi.internal.Kernel32.GetConsoleScreenBufferInfo;
 
 /**
  * Provides consistent access to an ANSI aware console PrintStream or an ANSI codes stripping PrintStream
- * if not on a terminal (see 
+ * if not on a terminal (see
  * <a href="http://fusesource.github.io/jansi/documentation/native-api/index.html?org/fusesource/jansi/internal/CLibrary.html">Jansi native
  * CLibrary isatty(int)</a>).
  * <p>The native library used is named <code>jansi</code> and is loaded using <a href="http://fusesource.github.io/hawtjni/">HawtJNI</a> Runtime
  * <a href="http://fusesource.github.io/hawtjni/documentation/api/index.html?org/fusesource/hawtjni/runtime/Library.html"><code>Library</code></a>
  *
- * @author <a href="http://hiramchirino.com">Hiram Chirino</a>
  * @since 1.0
  * @see #systemInstall()
  * @see #out()
@@ -203,19 +203,18 @@ public class AnsiConsole {
         return w;
     }
 
-    static final boolean IS_WINDOWS = System.getProperty("os.name").toLowerCase(Locale.ENGLISH).contains("win");
+    static final boolean IS_WINDOWS =
+            System.getProperty("os.name").toLowerCase(Locale.ENGLISH).contains("win");
 
-    static final boolean IS_CYGWIN = IS_WINDOWS
-            && System.getenv("PWD") != null
-            && System.getenv("PWD").startsWith("/");
+    static final boolean IS_CYGWIN =
+            IS_WINDOWS && System.getenv("PWD") != null && System.getenv("PWD").startsWith("/");
 
     static final boolean IS_MSYSTEM = IS_WINDOWS
             && System.getenv("MSYSTEM") != null
             && (System.getenv("MSYSTEM").startsWith("MINGW")
-                || System.getenv("MSYSTEM").equals("MSYS"));
+                    || System.getenv("MSYSTEM").equals("MSYS"));
 
-    static final boolean IS_CONEMU = IS_WINDOWS
-            && System.getenv("ConEmuPID") != null;
+    static final boolean IS_CONEMU = IS_WINDOWS && System.getenv("ConEmuPID") != null;
 
     static final int ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004;
 
@@ -223,25 +222,26 @@ public class AnsiConsole {
 
     static int STDERR_FILENO = 2;
 
-
     static {
         if (getBoolean(JANSI_EAGER)) {
             initStreams();
         }
     }
 
-    private static boolean initialized;
-    private static int installed;
-    private static int virtualProcessing;
+    private static boolean initialized; // synchronized on AnsiConsole.class
+    private static int installed; // synchronized on AnsiConsole.class
+    private static int virtualProcessing; // synchronized on AnsiConsole.class
 
-    private AnsiConsole() {
-    }
+    private AnsiConsole() {}
 
     private static AnsiPrintStream ansiStream(boolean stdout) {
         FileDescriptor descriptor = stdout ? FileDescriptor.out : FileDescriptor.err;
         final OutputStream out = new FastBufferedOutputStream(new FileOutputStream(descriptor));
 
-        String enc = System.getProperty(stdout ? "sun.stdout.encoding" : "sun.stderr.encoding");
+        String enc = System.getProperty(stdout ? "stdout.encoding" : "stderr.encoding");
+        if (enc == null) {
+            enc = System.getProperty(stdout ? "sun.stdout.encoding" : "sun.stderr.encoding");
+        }
 
         final boolean isatty;
         boolean isAtty;
@@ -277,40 +277,52 @@ public class AnsiConsole {
             type = withException ? AnsiType.Unsupported : AnsiType.Redirected;
             installer = uninstaller = null;
             width = new AnsiOutputStream.ZeroWidthSupplier();
-        }
-        else if (IS_WINDOWS) {
+        } else if (IS_WINDOWS) {
             final long console = GetStdHandle(stdout ? STD_OUTPUT_HANDLE : STD_ERROR_HANDLE);
             final int[] mode = new int[1];
             final boolean isConsole = GetConsoleMode(console, mode) != 0;
-            if (isConsole
-                    && SetConsoleMode(console, mode[0] | ENABLE_VIRTUAL_TERMINAL_PROCESSING) != 0) {
+            final AnsiOutputStream.WidthSupplier kernel32Width = new AnsiOutputStream.WidthSupplier() {
+                @Override
+                public int getTerminalWidth() {
+                    CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO();
+                    GetConsoleScreenBufferInfo(console, info);
+                    return info.windowWidth();
+                }
+            };
+
+            if (isConsole && SetConsoleMode(console, mode[0] | ENABLE_VIRTUAL_TERMINAL_PROCESSING) != 0) {
                 SetConsoleMode(console, mode[0]); // set it back for now, but we know it works
                 processor = null;
                 type = AnsiType.VirtualTerminal;
-                installer = new AnsiOutputStream.IoRunnable() {
-                    @Override
-                    public void run() throws IOException {
+                installer = () -> {
+                    synchronized (AnsiConsole.class) {
                         virtualProcessing++;
                         SetConsoleMode(console, mode[0] | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
                     }
                 };
-                uninstaller = new AnsiOutputStream.IoRunnable() {
-                    @Override
-                    public void run() throws IOException {
+                uninstaller = () -> {
+                    synchronized (AnsiConsole.class) {
                         if (--virtualProcessing == 0) {
                             SetConsoleMode(console, mode[0]);
                         }
                     }
                 };
-            }
-            else if ((IS_CONEMU || IS_CYGWIN || IS_MSYSTEM) && !isConsole) {
+                width = kernel32Width;
+            } else if ((IS_CONEMU || IS_CYGWIN || IS_MSYSTEM) && !isConsole) {
                 // ANSI-enabled ConEmu, Cygwin or MSYS(2) on Windows...
                 processor = null;
                 type = AnsiType.Native;
                 installer = uninstaller = null;
-            }
-            else {
-                // On Windows, when no ANSI-capable terminal is used, we know the console does not natively interpret ANSI
+                MingwSupport mingw = new MingwSupport();
+                String name = mingw.getConsoleName(stdout);
+                if (name != null && !name.isEmpty()) {
+                    width = () -> mingw.getTerminalWidth(name);
+                } else {
+                    width = () -> -1;
+                }
+            } else {
+                // On Windows, when no ANSI-capable terminal is used, we know the console does not natively interpret
+                // ANSI
                 // codes but we can use jansi Kernel32 API for console
                 AnsiProcessor proc;
                 AnsiType ttype;
@@ -326,15 +338,8 @@ public class AnsiConsole {
                 processor = proc;
                 type = ttype;
                 installer = uninstaller = null;
+                width = kernel32Width;
             }
-            width = new AnsiOutputStream.WidthSupplier() {
-                @Override
-                public int getTerminalWidth() {
-                    CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO();
-                    GetConsoleScreenBufferInfo(console, info);
-                    return info.windowWidth();
-                }
-            };
         }
 
         // We must be on some Unix variant...
@@ -381,9 +386,7 @@ public class AnsiConsole {
         // the ansi escapes for piping it into ansi color aware commands (e.g. less -r)
         else if (getBoolean(JANSI_FORCE)) {
             mode = AnsiMode.Force;
-        }
-
-        else {
+        } else {
             mode = isatty ? AnsiMode.Default : AnsiMode.Strip;
         }
 
@@ -391,7 +394,8 @@ public class AnsiConsole {
 
         String colorterm, term;
         // If the jansi.colors property is set, use it
-        String jansiColors = System.getProperty(stdout ? JANSI_OUT_COLORS : JANSI_ERR_COLORS, System.getProperty(JANSI_COLORS));
+        String jansiColors =
+                System.getProperty(stdout ? JANSI_OUT_COLORS : JANSI_ERR_COLORS, System.getProperty(JANSI_COLORS));
         if (JANSI_COLORS_TRUECOLOR.equals(jansiColors)) {
             colors = AnsiColors.TrueColor;
         } else if (JANSI_COLORS_256.equals(jansiColors)) {
@@ -433,8 +437,10 @@ public class AnsiConsole {
             } catch (UnsupportedCharsetException e) {
             }
         }
-        return newPrintStream(new AnsiOutputStream(out, width, mode, processor, type, colors, cs,
-                installer, uninstaller, resetAtUninstall), cs.name());
+        return newPrintStream(
+                new AnsiOutputStream(
+                        out, width, mode, processor, type, colors, cs, installer, uninstaller, resetAtUninstall),
+                cs.name());
     }
 
     private static AnsiPrintStream newPrintStream(AnsiOutputStream out, String enc) {
@@ -452,8 +458,7 @@ public class AnsiConsole {
         try {
             String val = System.getProperty(name);
             result = val.isEmpty() || Boolean.parseBoolean(val);
-        } catch (IllegalArgumentException e) {
-        } catch (NullPointerException e) {
+        } catch (IllegalArgumentException | NullPointerException ignored) {
         }
         return result;
     }
@@ -507,11 +512,8 @@ public class AnsiConsole {
      * <code>AnsiConsole.err()</code> to <code>System.err</code>.
      * @see #systemUninstall()
      */
-    synchronized static public void systemInstall() {
-        if (System.console() == null)
-            return;
-        installed++;
-        if (installed == 1) {
+    public static synchronized void systemInstall() {
+        if (installed == 0) {
             initStreams();
             try {
                 ((AnsiPrintStream) out).install();
@@ -522,12 +524,13 @@ public class AnsiConsole {
             System.setOut(out);
             System.setErr(err);
         }
+        installed++;
     }
 
     /**
      * check if the streams have been installed or not
      */
-    synchronized public static boolean isInstalled() {
+    public static synchronized boolean isInstalled() {
         return installed > 0;
     }
 
@@ -536,7 +539,7 @@ public class AnsiConsole {
      * multiple times, {@link #systemUninstall()} must be called the same number of times before
      * it is actually uninstalled.
      */
-    synchronized public static void systemUninstall() {
+    public static synchronized void systemUninstall() {
         installed--;
         if (installed == 0) {
             try {
@@ -554,14 +557,11 @@ public class AnsiConsole {
     /**
      * Initialize the out/err ansi-enabled streams
      */
-    synchronized static void initStreams()
-    {
-        if ( !initialized )
-        {
+    static synchronized void initStreams() {
+        if (!initialized) {
             out = ansiStream(true);
             err = ansiStream(false);
             initialized = true;
         }
     }
-
 }

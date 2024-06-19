@@ -30,7 +30,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
-        java: [ '1.8', '11', '17' ]
+        java: [ '11', '17' ]
     steps:
       - uses: actions/checkout@v2
         with:
@@ -46,4 +46,4 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
       - name: mvn verify
-        run: mvn test
+        run: mvn verify -Dnosign

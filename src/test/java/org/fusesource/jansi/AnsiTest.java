@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2017 the original author(s).
+ * Copyright (C) 2009-2023 the original author(s).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,36 +15,35 @@
  */
 package org.fusesource.jansi;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import org.fusesource.jansi.Ansi.Color;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for the {@link Ansi} class.
  *
- * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  */
 public class AnsiTest {
     @Test
     public void testSetEnabled() throws Exception {
         Ansi.setEnabled(false);
-        new Thread() {
-            @Override
-            public void run() {
-                assertEquals(false, Ansi.isEnabled());
-            }
-        }.run();
+        new Thread(() -> assertFalse(Ansi.isEnabled())).run();
 
         Ansi.setEnabled(true);
-        new Thread() {
-            @Override
-            public void run() {
-                assertEquals(true, Ansi.isEnabled());
-            }
-        }.run();
+        new Thread(() -> assertTrue(Ansi.isEnabled())).run();
     }
 
     @Test
@@ -57,11 +56,25 @@ public class AnsiTest {
 
     @Test
     public void testApply() {
-        assertEquals("test", Ansi.ansi().apply(new Ansi.Consumer() {
-            public void apply(Ansi ansi) {
-                ansi.a("test");
-            }
-        }).toString());
+        assertEquals("test", Ansi.ansi().apply(ansi -> ansi.a("test")).toString());
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "-2147483648,ESC[2147483647T", "2147483647,ESC[2147483647S",
+        "-100000,ESC[100000T", "100000,ESC[100000S"
+    })
+    public void testScrollUp(int x, String expected) {
+        assertAnsi(expected, Ansi.ansi().scrollUp(x));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "-2147483648,ESC[2147483647S", "2147483647,ESC[2147483647T",
+        "-100000,ESC[100000S", "100000,ESC[100000T"
+    })
+    public void testScrollDown(int x, String expected) {
+        assertAnsi(expected, Ansi.ansi().scrollDown(x));
     }
 
     @ParameterizedTest
@@ -143,10 +156,49 @@ public class AnsiTest {
     public void testColorDisabled() {
         Ansi.setEnabled(false);
         try {
-            assertEquals("test", Ansi.ansi().fg(32).a("t").fgRgb(0).a("e").bg(24).a("s").bgRgb(100).a("t").toString());
+            assertEquals(
+                    "test",
+                    Ansi.ansi()
+                            .fg(32)
+                            .a("t")
+                            .fgRgb(0)
+                            .a("e")
+                            .bg(24)
+                            .a("s")
+                            .bgRgb(100)
+                            .a("t")
+                            .toString());
         } finally {
             Ansi.setEnabled(true);
         }
+    }
+
+    @Test
+    @EnabledOnOs(OS.WINDOWS)
+    @Disabled("Does not really fail: launch `javaw -jar jansi-xxx.jar` directly instead")
+    public void testAnsiMainWithNoConsole() throws Exception {
+        Path javaHome = Paths.get(System.getProperty("java.home"));
+        Path java = javaHome.resolve("bin\\javaw.exe");
+        String cp = System.getProperty("java.class.path");
+
+        Process process = new ProcessBuilder()
+                .command(java.toString(), "-cp", cp, AnsiMain.class.getName())
+                .start();
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (InputStream in = process.getInputStream()) {
+            byte[] buffer = new byte[8192];
+            while (true) {
+                int nb = in.read(buffer);
+                if (nb > 0) {
+                    baos.write(buffer, 0, nb);
+                } else {
+                    break;
+                }
+            }
+        }
+
+        assertTrue(baos.toString().contains("test on System.out"), baos.toString());
     }
 
     private static void assertAnsi(String expected, Ansi actual) {

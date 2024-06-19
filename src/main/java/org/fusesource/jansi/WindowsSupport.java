@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2019 the original author(s).
+ * Copyright (C) 2009-2023 the original author(s).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,28 +15,21 @@
  */
 package org.fusesource.jansi;
 
-import java.io.UnsupportedEncodingException;
+import org.fusesource.jansi.internal.Kernel32;
 
-import static org.fusesource.jansi.internal.Kernel32.FORMAT_MESSAGE_FROM_SYSTEM;
-import static org.fusesource.jansi.internal.Kernel32.FormatMessageW;
-import static org.fusesource.jansi.internal.Kernel32.GetLastError;
-
+/**
+ * @deprecated Use org.fusesource.jansi.internal.Kernel32 if needed
+ */
+@Deprecated
 public class WindowsSupport {
 
+    @Deprecated
     public static String getLastErrorMessage() {
-        int errorCode = GetLastError();
-        return getErrorMessage(errorCode);
+        return Kernel32.getLastErrorMessage();
     }
 
+    @Deprecated
     public static String getErrorMessage(int errorCode) {
-        int bufferSize = 160;
-        byte data[] = new byte[bufferSize];
-        FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, 0, errorCode, 0, data, bufferSize, null);
-        try {
-            return new String(data, "UTF-16LE").trim();
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalStateException(e);
-        }
+        return Kernel32.getErrorMessage(errorCode);
     }
-
 }

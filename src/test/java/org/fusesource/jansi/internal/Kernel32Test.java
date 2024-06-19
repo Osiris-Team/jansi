@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2019 the original author(s).
+ * Copyright (C) 2009-2023 the original author(s).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,20 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.fusesource.jansi;
+package org.fusesource.jansi.internal;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-public class WindowsSupportTest {
+public class Kernel32Test {
 
     @Test
+    @EnabledOnOs(OS.WINDOWS)
     public void testErrorMessage() {
-        assumeTrue(AnsiConsole.IS_WINDOWS);
-        String msg = WindowsSupport.getErrorMessage(500);
-        //assertEquals(msg, "User profile cannot be loaded.");
-        // Fails because the text may be in another language instead of english.
+        String msg = Kernel32.getErrorMessage(500);
+        assertEquals(msg, "User profile cannot be loaded.");
     }
 }

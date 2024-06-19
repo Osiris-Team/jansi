@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2009-2023 the original author(s).
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.fusesource.jansi.internal;
+
 /*--------------------------------------------------------------------------
  *  Copyright 2007 Taro L. Saito
  *
@@ -13,7 +30,6 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *--------------------------------------------------------------------------*/
-package org.fusesource.jansi.internal;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -21,8 +37,9 @@ import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -58,13 +75,18 @@ public class JansiLoader {
             return false;
         // only cleanup before the first extract
         if (!loaded) {
-            cleanup();
+            Thread cleanup = new Thread(JansiLoader::cleanup, "cleanup");
+            cleanup.setPriority(Thread.MIN_PRIORITY);
+            cleanup.setDaemon(true);
+            cleanup.start();
         }
         try {
             loadJansiNativeLibrary();
         } catch (Exception e) {
             if (!Boolean.parseBoolean(System.getProperty(AnsiConsole.JANSI_GRACEFUL, "true"))) {
-                throw new RuntimeException("Unable to load jansi native library. You may want set the `jansi.graceful` system property to true to be able to use Jansi on your platform", e);
+                throw new RuntimeException(
+                        "Unable to load jansi native library. You may want set the `jansi.graceful` system property to true to be able to use Jansi on your platform",
+                        e);
             }
         }
         return loaded;
@@ -116,8 +138,7 @@ public class JansiLoader {
         int len = b.length;
         while (n < len) {
             int count = in.read(b, n, len - n);
-            if (count <= 0)
-                break;
+            if (count <= 0) break;
             n += count;
         }
         return n;
@@ -162,8 +183,8 @@ public class JansiLoader {
      * @param targetFolder          Target folder.
      * @return
      */
-    private static boolean extractAndLoadLibraryFile(String libFolderForCurrentOS, String libraryFileName,
-                                                     String targetFolder) {
+    private static boolean extractAndLoadLibraryFile(
+            String libFolderForCurrentOS, String libraryFileName, String targetFolder) {
         String nativeLibraryFilePath = libFolderForCurrentOS + "/" + libraryFileName;
         // Include architecture name in temporary filename in order to avoid conflicts
         // when multiple JVMs with different architectures running at the same time
@@ -180,9 +201,7 @@ public class JansiLoader {
                 if (!extractedLckFile.exists()) {
                     new FileOutputStream(extractedLckFile).close();
                 }
-                try (OutputStream out = new FileOutputStream(extractedLibFile)) {
-                    copy(in, out);
-                }
+                Files.copy(in, extractedLibFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
             } finally {
                 // Delete the extracted lib file on JVM exit.
                 extractedLibFile.deleteOnExit();
@@ -199,14 +218,16 @@ public class JansiLoader {
                 try (InputStream extractedLibIn = new FileInputStream(extractedLibFile)) {
                     String eq = contentsEquals(nativeIn, extractedLibIn);
                     if (eq != null) {
-                        throw new RuntimeException(String.format("Failed to write a native library file at %s because %s", extractedLibFile, eq));
+                        throw new RuntimeException(String.format(
+                                "Failed to write a native library file at %s because %s", extractedLibFile, eq));
                     }
                 }
             }
 
             // Load library
             if (loadNativeLibrary(extractedLibFile)) {
-                nativeLibrarySourceUrl = JansiLoader.class.getResource(nativeLibraryFilePath).toExternalForm();
+                nativeLibrarySourceUrl =
+                        JansiLoader.class.getResource(nativeLibraryFilePath).toExternalForm();
                 return true;
             }
         } catch (IOException e) {
@@ -217,14 +238,6 @@ public class JansiLoader {
 
     private static String randomUUID() {
         return Long.toHexString(new Random().nextLong());
-    }
-
-    private static void copy(InputStream in, OutputStream out) throws IOException {
-        byte[] buf = new byte[8192];
-        int n;
-        while ((n = in.read(buf)) > 0) {
-            out.write(buf, 0, n);
-        }
     }
 
     /**
@@ -243,13 +256,16 @@ public class JansiLoader {
             } catch (UnsatisfiedLinkError e) {
                 if (!libPath.canExecute()) {
                     // NOTE: this can be tested using something like:
-                    // docker run --rm --tmpfs /tmp -v $PWD:/jansi openjdk:11 java -jar /jansi/target/jansi-xxx-SNAPSHOT.jar
-                    System.err.printf("Failed to load native library:%s. The native library file at %s is not executable, "
-                            + "make sure that the directory is mounted on a partition without the noexec flag, or set the "
-                            + "jansi.tmpdir system property to point to a proper location.  osinfo: %s%n",
+                    // docker run --rm --tmpfs /tmp -v $PWD:/jansi openjdk:11 java -jar
+                    // /jansi/target/jansi-xxx-SNAPSHOT.jar
+                    System.err.printf(
+                            "Failed to load native library:%s. The native library file at %s is not executable, "
+                                    + "make sure that the directory is mounted on a partition without the noexec flag, or set the "
+                                    + "jansi.tmpdir system property to point to a proper location.  osinfo: %s%n",
                             libPath.getName(), libPath, OSInfo.getNativeLibFolderPathForCurrentOS());
                 } else {
-                    System.err.printf("Failed to load native library:%s. osinfo: %s%n",
+                    System.err.printf(
+                            "Failed to load native library:%s. osinfo: %s%n",
                             libPath.getName(), OSInfo.getNativeLibFolderPathForCurrentOS());
                 }
                 System.err.println(e);
@@ -303,9 +319,9 @@ public class JansiLoader {
 
         // Load the os-dependent library from the jar file
         String packagePath = JansiLoader.class.getPackage().getName().replace('.', '/');
-        jansiNativeLibraryPath = String.format("/%s/native/%s", packagePath, OSInfo.getNativeLibFolderPathForCurrentOS());
+        jansiNativeLibraryPath =
+                String.format("/%s/native/%s", packagePath, OSInfo.getNativeLibFolderPathForCurrentOS());
         boolean hasNativeLib = hasResource(jansiNativeLibraryPath + "/" + jansiNativeLibraryName);
-
 
         if (hasNativeLib) {
             // temporary library folder
@@ -333,14 +349,14 @@ public class JansiLoader {
             }
         }
 
-        throw new Exception(String.format("No native library found for os.name=%s, os.arch=%s, paths=[%s]",
-                OSInfo.getOSName(), OSInfo.getArchName(), join(triedPaths, File.pathSeparator)));
+        throw new Exception(String.format(
+                "No native library found for os.name=%s, os.arch=%s, paths=[%s]",
+                OSInfo.getOSName(), OSInfo.getArchName(), String.join(File.pathSeparator, triedPaths)));
     }
 
     private static boolean hasResource(String path) {
         return JansiLoader.class.getResource(path) != null;
     }
-
 
     /**
      * @return The major version of the jansi library.
@@ -378,19 +394,4 @@ public class JansiLoader {
         }
         return version;
     }
-
-    private static String join(List<String> list, String separator) {
-        StringBuilder sb = new StringBuilder();
-        boolean first = true;
-        for (String item : list) {
-            if (first)
-                first = false;
-            else
-                sb.append(separator);
-
-            sb.append(item);
-        }
-        return sb.toString();
-    }
-
 }
