@@ -1,8 +1,21 @@
+/*
+ * Copyright (C) 2009-2023 the original author(s).
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.fusesource.jansi.io;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.charset.Charset;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 
 import org.junit.jupiter.api.Test;
@@ -35,13 +48,14 @@ public class HtmlAnsiOutputStreamTest {
 
     @Test
     public void testGreen() throws IOException {
-        assertEquals("<span style=\"color: "+htmlGreen+";\">hello world</span>",
-                colorize("[32mhello world"));
+        assertEquals("<span style=\"color: " + htmlGreen + ";\">hello world</span>", colorize("[32mhello world"));
     }
 
     @Test
     public void testGreenOnWhite() throws IOException {
-        assertEquals("<span style=\"background-color: white;\"><span style=\"color: "+htmlGreen+";\">hello world</span></span>",
+        assertEquals(
+                "<span style=\"background-color: white;\"><span style=\"color: " + htmlGreen
+                        + ";\">hello world</span></span>",
                 colorize("[47;32mhello world"));
     }
 
@@ -56,14 +70,13 @@ public class HtmlAnsiOutputStreamTest {
 
     @Test
     public void testResetOnOpen() throws IOException {
-        assertEquals("<span style=\"color: "+htmlRed+";\">red</span>",
-                colorize("[0;31;49mred[0m"));
+        assertEquals("<span style=\"color: " + htmlRed + ";\">red</span>", colorize("[0;31;49mred[0m"));
     }
 
     @Test
     public void testUTF8Character() throws IOException {
         // TODO FAILS
-        //assertEquals("<b>\u3053\u3093\u306b\u3061\u306f</b>",
+        // assertEquals("<b>\u3053\u3093\u306b\u3061\u306f</b>",
         //        colorize("[1m\u3053\u3093\u306b\u3061\u306f"));
     }
 
@@ -75,7 +88,7 @@ public class HtmlAnsiOutputStreamTest {
 
     private String colorize(String text) throws IOException {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
-        try(HtmlAnsiOutputStream hos = new HtmlAnsiOutputStream(os)){
+        try (HtmlAnsiOutputStream hos = new HtmlAnsiOutputStream(os)) {
             hos.write(text.getBytes(StandardCharsets.UTF_8));
         }
         os.close();

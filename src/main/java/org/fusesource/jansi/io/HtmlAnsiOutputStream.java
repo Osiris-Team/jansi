@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2017 the original author(s).
+ * Copyright (C) 2009-2023 the original author(s).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,18 +15,15 @@
  */
 package org.fusesource.jansi.io;
 
-import org.fusesource.jansi.AnsiColors;
-import org.fusesource.jansi.AnsiMode;
-import org.fusesource.jansi.AnsiType;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+
+import org.fusesource.jansi.AnsiColors;
+import org.fusesource.jansi.AnsiMode;
+import org.fusesource.jansi.AnsiType;
 
 /**
  * A optimized/edited {@link HtmlAnsiOutputStream} for Jansi 2.x and above. <br>
@@ -43,15 +40,16 @@ public class HtmlAnsiOutputStream extends AnsiOutputStream {
     }
 
     public static final String[] ANSI_COLOR_MAP = {
-            "black",
-            // Made the colors below less bright, to fit better in pages with a white background.
-            "#781914", // red
-            "#147823", // green
-            "#787814", // yellow
-            "#142078", // blue
-            "#431478", // magenta
-            "#146b78", // cyan
-            "white",};
+        "black",
+        // Made the colors below less bright, to fit better in pages with a white background.
+        "#781914", // red
+        "#147823", // green
+        "#787814", // yellow
+        "#142078", // blue
+        "#431478", // magenta
+        "#146b78", // cyan
+        "white",
+    };
 
     private static final byte[] BYTES_QUOT = "&quot;".getBytes();
     private static final byte[] BYTES_AMP = "&amp;".getBytes();

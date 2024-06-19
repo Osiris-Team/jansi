@@ -15,4 +15,4 @@ Also contains additional fixes for:
 ## Contribute & Build
 - All contributions are welcome, but create an issue first before making major changes.
 - Execute `mvn clean install -DskipTests -Dgpg.skip` in the project root to create a runnable jar which is located in `/target`.
-Note that on most IDEs you simply need to create a maven execution profile and insert only the arguments above (stuff without `mvn`). 
+Note that on most IDEs you simply need to create a maven execution profile and insert only the arguments above (stuff without `mvn`).

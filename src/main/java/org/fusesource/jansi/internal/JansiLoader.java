@@ -71,8 +71,7 @@ public class JansiLoader {
      * otherwise.
      */
     public static synchronized boolean initialize() {
-        if (System.console() == null)
-            return false;
+        if (System.console() == null) return false;
         // only cleanup before the first extract
         if (!loaded) {
             Thread cleanup = new Thread(JansiLoader::cleanup, "cleanup");
