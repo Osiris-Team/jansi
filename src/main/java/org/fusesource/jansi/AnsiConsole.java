@@ -513,6 +513,7 @@ public class AnsiConsole {
      * @see #systemUninstall()
      */
     public static synchronized void systemInstall() {
+        if (System.console() == null) return;
         if (installed == 0) {
             initStreams();
             try {
